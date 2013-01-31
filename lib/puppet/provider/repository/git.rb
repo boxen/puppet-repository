@@ -3,6 +3,10 @@ require 'fileutils'
 Puppet::Type.type(:repository).provide(:git) do
   desc "Git repository clones"
 
+  def self.autorequire(type)
+    type.autorequire(:class) { ['git'] }
+  end
+
   def self.git_bin
     if boxen_home = Facter[:boxen_home].value
       "#{boxen_home}/homebrew/bin/git"

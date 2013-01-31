@@ -3,10 +3,10 @@ require 'pathname'
 Puppet.newtype(:repository) do
   @doc = "Clones or checks out a repository on a system"
 
-  autorequire :class do
-    [
-      'git'
-    ]
+  if provider.respond_to? :autorequire
+    provider.autorequire(self).each do |requirement|
+      Puppet.warning("got an autorequire of: #{requirement}")
+    end
   end
 
   ensurable do
