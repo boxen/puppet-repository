@@ -4,7 +4,9 @@ Puppet::Type.type(:repository).provide(:git) do
   desc "Git repository clones"
 
   def self.autorequire(type)
-    type.autorequire(:class) { ['git'] }
+    type.autorequire(:class) do
+      ['git']
+    end
   end
 
   def self.git_bin
