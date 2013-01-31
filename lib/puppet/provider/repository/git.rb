@@ -3,7 +3,7 @@ require 'fileutils'
 Puppet::Type.type(:repository).provide(:git) do
   desc "Git repository clones"
 
-  def self.autorequire
+  def autorequire
     ['git']
   end
 
