@@ -3,6 +3,12 @@ require 'pathname'
 Puppet.newtype(:repository) do
   @doc = "Clones or checks out a repository on a system"
 
+  autorequire :class do
+    [
+      'git'
+    ]
+  end
+
   ensurable do
     newvalue(:present) do
       provider.create
