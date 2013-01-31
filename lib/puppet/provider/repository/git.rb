@@ -33,12 +33,13 @@ Puppet::Type.type(:repository).provide(:git) do
       options[:uid] = boxen_user
     end
 
-    execute self.class.git_bin,
+    execute [
+      self.class.git_bin,
       "clone",
       @resource[:extra].to_a.flatten.join(' ').strip,
       source,
-      path,
-      options
+      path
+    ].join(' '), options
     end
 
   def destroy
