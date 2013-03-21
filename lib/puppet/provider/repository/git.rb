@@ -1,12 +1,11 @@
 require 'fileutils'
+require 'puppet/util/execution'
 require 'shellwords'
 
 Puppet::Type.type(:repository).provide :git do
-  # FIX: needs to infer path
-  CRED_HELPER_PATH = "#{Facter[:boxen_home].value}/bin/boxen-git-credential"
-  CRED_HELPER = "-c credential.helper=#{CRED_HELPER_PATH}"
-  GIT_BIN = "#{Facter[:boxen_home].value}/homebrew/bin/git"
-  commands :git => GIT_BIN
+  include Puppet::Util::Execution
+
+  optional_commands :git => 'git'
 
   def self.default_user
     Facter[:boxen_user].value || nil
@@ -22,26 +21,19 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def create
-    source = expand_source(@resource[:source])
-    path = @resource[:path]
-    extras = [@resource[:extra]].flatten
-    extras << CRED_HELPER if File.exist?(CRED_HELPER_PATH)
-
     command = [
-      GIT_BIN,
+      command(:git),
       "clone",
-      extras.join(' ').strip,
-      source,
-      Shellwords.escape(path)
-    ].flatten.compact.join(' ')
+      friendly_extra,
+      friendly_source,
+      friendly_path
+    ].flatten.compact
 
-    execute command, :combine => true, :failonfail => true, :uid => Facter[:luser].value
+    execute command, command_opts
   end
 
   def destroy
-    path = @resource[:path]
-
-    FileUtils.rm_rf path
+    FileUtils.rm_rf @resource[:path]
   end
 
   def expand_source(source)
@@ -50,5 +42,38 @@ Puppet::Type.type(:repository).provide :git do
     else
       source
     end
+  end
+
+  def command_opts
+    @command_opts ||= build_command_opts
+  end
+
+  def build_command_opts
+    default_commands_opts.tap do |h|
+      if uid = (self[:user] || self.class.default_user)
+        h[:uid] = uid
+      end
+    end
+  end
+
+  def default_command_opts
+    {
+      :combine    => true,
+      :failonfail => true
+    }
+  end
+
+  def friendly_extra
+    @friendly_extra ||= [@resource[:extra]].map do |o|
+      Shellwords.escape(o)
+    end.flatten.join(' ').strip
+  end
+
+  def friendly_source
+    @friendly_source ||= Shellwords.escape(expand_source(@resource[:source]))
+  end
+
+  def friendly_path
+    @friendly_path ||= Shellwords.escape(@resource[:path])
   end
 end
