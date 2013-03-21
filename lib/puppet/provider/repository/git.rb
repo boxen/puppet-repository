@@ -1,18 +1,15 @@
 require 'fileutils'
+require 'shellwords'
 
-Puppet::Type.type(:repository).provide(:git) do
-  desc "Git repository clones"
+Puppet::Type.type(:repository).provide :git do
+  # FIX: needs to infer path
+  CRED_HELPER_PATH = "#{Facter[:boxen_home].value}/bin/boxen-git-credential"
+  CRED_HELPER = "-c credential.helper=#{CRED_HELPER_PATH}"
+  GIT_BIN = "#{Facter[:boxen_home].value}/homebrew/bin/git"
+  commands :git => GIT_BIN
 
-  def autorequire
-    ['git']
-  end
-
-  def self.git_bin
-    if boxen_home = Facter[:boxen_home].value
-      "#{boxen_home}/homebrew/bin/git"
-    else
-      `which git`.strip
-    end
+  def self.default_user
+    Facter[:boxen_user].value || nil
   end
 
   def self.default_protocol
@@ -27,24 +24,19 @@ Puppet::Type.type(:repository).provide(:git) do
   def create
     source = expand_source(@resource[:source])
     path = @resource[:path]
+    extras = [@resource[:extra]].flatten
+    extras << CRED_HELPER if File.exist?(CRED_HELPER_PATH)
 
-    options = {
-      :combine    => true,
-      :failonfail => true,
-    }
-
-    if boxen_user = Facter[:boxen_user].value
-      options[:uid] = boxen_user
-    end
-
-    execute [
-      self.class.git_bin,
+    command = [
+      GIT_BIN,
       "clone",
-      @resource[:extra].to_a.flatten.join(' ').strip,
+      extras.join(' ').strip,
       source,
-      path
-    ].join(' '), options
-    end
+      Shellwords.escape(path)
+    ].flatten.compact.join(' ')
+
+    execute command, :combine => true, :failonfail => true, :uid => Facter[:luser].value
+  end
 
   def destroy
     path = @resource[:path]
@@ -53,7 +45,7 @@ Puppet::Type.type(:repository).provide(:git) do
   end
 
   def expand_source(source)
-    if source =~ /\A\S+\/\S+\z/
+    if source =~ /\A[^@\/\s]+\/[^\/\s]+\z/
       "#{@resource[:protocol]}://github.com/#{source}"
     else
       source
