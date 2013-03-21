@@ -7,10 +7,6 @@ Puppet::Type.type(:repository).provide :git do
 
   optional_commands :git => 'git'
 
-  def self.default_user
-    Facter[:boxen_user].value || nil
-  end
-
   def self.default_protocol
     'https'
   end

@@ -1,55 +1,106 @@
-require 'spec_helper'
-
-# Stub out some boxen specific Facter facts
-Facter.add('boxen_home') { setcode { '/opt/boxen' } }
-Facter.add('luser') { setcode { 'skalnik' } }
-
+require 'puppet'
 require 'puppet/type/repository'
 
 describe Puppet::Type.type(:repository) do
+  let(:default_opts) do
+    {
+      :source => 'boxen/boxen',
+      :path => '/tmp/boxen'
+    }
+  end
+
+  let(:factory) do
+    lamdba { |opts|
+      described_class.new(default_opts.merge(opts))
+    }
+  end
+
   let(:resource) {
-    described_class.new(:source => 'boxen/boxen', :path => '/tmp/boxen')
+    described_class.new(default_opts)
   }
 
-  it "should accept an ensure property" do
-    resource[:ensure] = :present
-    resource[:ensure].should == :present
+  context "ensure" do
+    it "should default to present" do
+      resource[:ensure].should == :present
+    end
+
+    it "should accept a value of present or absent" do
+      resource[:ensure] = :present
+      resource[:ensure].should == :present
+
+      resource[:ensure] = :absent
+      resource[:ensure].should == :absent
+    end
+
+    it "should reject other values" do
+      expect {
+        resource[:ensure] = :awesome
+      }.to raise_error(Puppet::Error)
+    end
   end
 
-  it "should accept an absolute path" do
-    expect { resource[:path] = '/tmp/foo' }.to_not raise_error
+  context "path" do
+    it "should accept an absolute path as a value" do
+      expect {
+        resource[:path] = '/tmp/foo'
+      }.to_not raise_error
+    end
+
+    it "should not accept a relative path as a value" do
+      expect {
+        resource[:path] = 'foo'
+      }.to raise_error(Puppet::Error, /Path must be absolute for Repository\[foo\]/)
+    end
+
+    it "should fail when not provided with a value" do
+      expect {
+        described_class.new(:source => 'boxen/boxen')
+      }.to raise_error(Puppet::Error, /Title or name must be provided/)
+    end
   end
 
-  it "should not accept a relative path" do
-    expect {
-      resource[:path] = 'foo'
-    }.to raise_error(Puppet::Error, /Path is not an absolute path: foo/)
+  context "source" do
+    it "should accept any value" do
+      resource[:source] = 'boxen/test'
+      resource[:source].should == 'boxen/test'
+    end
+
+    it "should fail when not provided with a value" do
+      expect {
+        described_class.new(:path => '/tmp/foo')
+      }.to raise_error(Puppet::Error, /You must specify a source/)
+    end
   end
 
-  it "should accept a source parameter" do
-    resource[:source] = 'boxen/test'
-    resource[:source].should == 'boxen/test'
+  context "protocol" do
+    it "should accept any string value" do
+      resource[:protocol] = 'git'
+      resource[:protocol].should == 'git'
+    end
+
+    it "should default to the provider's default_protocol class method" do
+    end
   end
 
-  it "should accept a protocol parameter" do
-    resource[:protocol] = 'git'
-    resource[:protocol].should == 'git'
+  context "user" do
+    it "should accept any string value" do
+      resource[:user] = 'git'
+      resource[:user].should == 'git'
+    end
+
+    it "should default to boxen_user if it exists" do
+      resource[:user].should == nil
+
+      Facter.stubs(:[]).with(:boxen_user).returns('testuser')
+
+      factory.call().should == 'testuser'
+    end
   end
 
-  it "should accept an array of extra options" do
-    resource[:extra] = ['foo', 'bar']
-    resource[:extra].should == ['foo', 'bar']
-  end
-
-  it "should fail when not provided with a source" do
-    expect {
-      described_class.new(:path => '/tmp/foo')
-    }.to raise_error(Puppet::Error, /You must specify a source/)
-  end
-
-  it "should fail when not provided with a path" do
-    expect {
-      described_class.new(:source => 'boxen/boxen')
-    }.to raise_error(Puppet::Error, /Title or name must be provided/)
+  context "extra" do
+    it "should accept an array of extra options" do
+      resource[:extra] = ['foo', 'bar']
+      resource[:extra].should == ['foo', 'bar']
+    end
   end
 end

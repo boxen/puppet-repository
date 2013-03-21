@@ -43,9 +43,7 @@ Puppet.newtype :repository do
     desc "User to run this operation as."
 
     defaultto do
-      if provider.class.respond_to? :default_user
-        provider.class.default_user
-      end
+      Facter[:boxen_user].value
     end
   end
 
