@@ -64,9 +64,9 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def friendly_extra
-    @friendly_extra ||= [@resource[:extra]].map do |o|
+    @friendly_extra ||= [@resource[:extra]].flatten.map do |o|
       Shellwords.escape(o)
-    end.flatten.join(' ').strip
+    end.join(' ').strip
   end
 
   def friendly_source
