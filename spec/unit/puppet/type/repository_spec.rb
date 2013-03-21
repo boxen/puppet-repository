@@ -10,13 +10,13 @@ describe Puppet::Type.type(:repository) do
   end
 
   let(:factory) do
-    lamdba { |opts|
-      described_class.new(default_opts.merge(opts))
+    lambda { |opts|
+      described_class.new opts
     }
   end
 
   let(:resource) {
-    described_class.new(default_opts)
+    described_class.new default_opts
   }
 
   context "ensure" do
@@ -54,7 +54,7 @@ describe Puppet::Type.type(:repository) do
 
     it "should fail when not provided with a value" do
       expect {
-        described_class.new(:source => 'boxen/boxen')
+        factory.call :source => 'boxen/boxen'
       }.to raise_error(Puppet::Error, /Title or name must be provided/)
     end
   end
@@ -67,7 +67,7 @@ describe Puppet::Type.type(:repository) do
 
     it "should fail when not provided with a value" do
       expect {
-        described_class.new(:path => '/tmp/foo')
+        factory.call :path => '/tmp/foo'
       }.to raise_error(Puppet::Error, /You must specify a source/)
     end
   end
@@ -89,11 +89,13 @@ describe Puppet::Type.type(:repository) do
     end
 
     it "should default to boxen_user if it exists" do
-      resource[:user].should == nil
+      Facter[:boxen_user].stubs(:value).returns(nil)
 
-      Facter.stubs(:[]).with(:boxen_user).returns('testuser')
+      factory.call.should == nil
 
-      factory.call().should == 'testuser'
+      Facter[:boxen_user].stubs(:value).returns('testuser')
+
+      factory.call.should == 'testuser'
     end
   end
 
