@@ -1,55 +1,53 @@
 require 'pathname'
 
-Puppet.newtype(:repository) do
-  @doc = "Clones or checks out a repository on a system"
-
-  autorequire :class do
-    if provider.respond_to? :autorequire
-      provider.autorequire.each do |requirement|
-        Puppet.warning("got an autorequire of: #{requirement}")
-      end
-    else
-      []
-    end
-  end
+Puppet.newtype :repository do
 
   ensurable do
-    newvalue(:present) do
+    newvalue :present do
       provider.create
     end
 
-    newvalue(:absent) do
+    newvalue :absent do
       provider.destroy
     end
 
     defaultto :present
   end
 
-  newparam(:path, :namevar => true) do
+  newparam :path, :namevar => true do
     desc "The path of the repository."
 
     validate do |value|
       unless Pathname.new(value).absolute?
-        raise ArgumentError, "Path is not an absolute path: #{value}"
+        raise Puppet::Error, \
+          "Path must be absolute for Repository[#{value}]"
       end
     end
   end
 
-  newparam(:source) do
+  newparam :source do
     desc "The remote source for the repository."
   end
 
-  newparam(:protocol) do
+  newparam :protocol do
     desc "The protocol used to fetch the repository."
 
     defaultto do
-      if provider.class.respond_to?(:default_protocol)
+      if provider.class.respond_to? :default_protocol
         provider.class.default_protocol
       end
     end
   end
 
-  newparam(:extra, :array_matching => :all) do
+  newparam :user do
+    desc "User to run this operation as."
+
+    defaultto do
+      Facter[:boxen_user].value
+    end
+  end
+
+  newparam :extra, :array_matching => :all do
     desc "Extra actions or information for a provider"
   end
 
@@ -57,7 +55,30 @@ Puppet.newtype(:repository) do
     if self[:source].nil?
       # ensure => absent does not need a source
       unless self[:ensure] == :absent || self[:ensure] == 'absent'
-        self.fail "Repository[#{self[:name]}]: You must specify a source"
+        raise Puppet::Error, \
+          "You must specify a source for Repository[#{self[:name]}]"
+      end
+    end
+  end
+
+  autorequire :file do
+    Array.new.tap do |a|
+      path = Pathname.new self[:path]
+
+      unless path.root?
+        tree_walker = path.parent.enum_for :ascend
+
+        tree_walker.each do |dir|
+          a << dir.to_s if catalog.resource(:file, dir.to_s)
+        end
+      end
+    end
+  end
+
+  autorequire :user do
+    Array.new.tap do |a|
+      if @parameters.include?(:user) && user = @parameters[:user].to_s
+        a << user if catalog.resource(:user, user)
       end
     end
   end

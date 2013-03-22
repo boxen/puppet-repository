@@ -1,19 +1,11 @@
 require 'fileutils'
+require 'puppet/util/execution'
+require 'shellwords'
 
-Puppet::Type.type(:repository).provide(:git) do
-  desc "Git repository clones"
+Puppet::Type.type(:repository).provide :git do
+  include Puppet::Util::Execution
 
-  def autorequire
-    ['git']
-  end
-
-  def self.git_bin
-    if boxen_home = Facter[:boxen_home].value
-      "#{boxen_home}/homebrew/bin/git"
-    else
-      `which git`.strip
-    end
-  end
+  optional_commands :git => 'git'
 
   def self.default_protocol
     'https'
@@ -25,38 +17,59 @@ Puppet::Type.type(:repository).provide(:git) do
   end
 
   def create
-    source = expand_source(@resource[:source])
-    path = @resource[:path]
-
-    options = {
-      :combine    => true,
-      :failonfail => true,
-    }
-
-    if boxen_user = Facter[:boxen_user].value
-      options[:uid] = boxen_user
-    end
-
-    execute [
-      self.class.git_bin,
+    command = [
+      command(:git),
       "clone",
-      @resource[:extra].to_a.flatten.join(' ').strip,
-      source,
-      path
-    ].join(' '), options
-    end
+      friendly_extra,
+      friendly_source,
+      friendly_path
+    ].flatten.compact
+
+    execute command, command_opts
+  end
 
   def destroy
-    path = @resource[:path]
-
-    FileUtils.rm_rf path
+    FileUtils.rm_rf @resource[:path]
   end
 
   def expand_source(source)
-    if source =~ /\A\S+\/\S+\z/
+    if source =~ /\A[^@\/\s]+\/[^\/\s]+\z/
       "#{@resource[:protocol]}://github.com/#{source}"
     else
       source
     end
+  end
+
+  def command_opts
+    @command_opts ||= build_command_opts
+  end
+
+  def build_command_opts
+    default_commands_opts.tap do |h|
+      if uid = (self[:user] || self.class.default_user)
+        h[:uid] = uid
+      end
+    end
+  end
+
+  def default_command_opts
+    {
+      :combine    => true,
+      :failonfail => true
+    }
+  end
+
+  def friendly_extra
+    @friendly_extra ||= [@resource[:extra]].flatten.map do |o|
+      Shellwords.escape(o)
+    end.join(' ').strip
+  end
+
+  def friendly_source
+    @friendly_source ||= Shellwords.escape(expand_source(@resource[:source]))
+  end
+
+  def friendly_path
+    @friendly_path ||= Shellwords.escape(@resource[:path])
   end
 end
