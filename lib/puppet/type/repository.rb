@@ -63,19 +63,23 @@ Puppet.newtype :repository do
 
   autorequire :file do
     Array.new.tap do |a|
-      tree, _, leaf = path.rpartition('/')
+      path = Pathname.new self[:path]
 
-      path_builder = ""
+      unless path.root?
+        tree_walker = path.parent.enum_for :ascend
 
-      tree.split('/').each do |node|
-        a << (path_builder << "/#{node}").dup unless node.empty?
+        tree_walker.each do |dir|
+          a << dir.to_s if catalog.resource(:file, dir.to_s)
+        end
       end
     end
   end
 
   autorequire :user do
     Array.new.tap do |a|
-      a << self[:user] unless self[:user].nil?
+      if @parameters.include?(:user) && user = @parameters[:user].to_s
+        a << user if catalog.resource(:user, user)
+      end
     end
   end
 end
