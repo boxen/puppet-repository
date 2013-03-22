@@ -1,5 +1,4 @@
-require 'puppet'
-require 'puppet/type/repository'
+require 'spec_helper'
 
 describe Puppet::Type.type(:repository) do
   let(:default_opts) do
