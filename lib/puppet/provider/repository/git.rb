@@ -20,6 +20,7 @@ Puppet::Type.type(:repository).provide :git do
     command = [
       command(:git),
       "clone",
+      friendly_config,
       friendly_extra,
       friendly_source,
       friendly_path
@@ -46,7 +47,7 @@ Puppet::Type.type(:repository).provide :git do
 
   def build_command_opts
     default_command_opts.tap do |h|
-      if uid = (self[:user] || self.class.default_user)
+      if uid = (@resource[:user] || self.class.default_user)
         h[:uid] = uid
       end
     end
@@ -59,14 +60,20 @@ Puppet::Type.type(:repository).provide :git do
     }
   end
 
-  def friendly_extra
-    @friendly_extra ||= [@resource[:extra]].flatten.map do |o|
-      Shellwords.escape(o)
+  def friendly_config
+    @friendly_config ||= Array.new.tap do |a|
+      @resource[:config].each do |setting, value|
+        a << "-c #{setting}=#{value}"
+      end
     end.join(' ').strip
   end
 
+  def friendly_extra
+    @friendly_extra ||= [@resource[:extra]].flatten.join(' ').strip
+  end
+
   def friendly_source
-    @friendly_source ||= Shellwords.escape(expand_source(@resource[:source]))
+    @friendly_source ||= expand_source(@resource[:source])
   end
 
   def friendly_path

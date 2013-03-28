@@ -47,6 +47,16 @@ Puppet.newtype :repository do
     end
   end
 
+  newparam :config do
+    desc "The config to pass to the running provider"
+
+    validate do |value|
+      unless value.is_a? Hash
+        raise Puppet::Error, "Repository#config must be a Hash"
+      end
+    end
+  end
+
   newparam :extra, :array_matching => :all do
     desc "Extra actions or information for a provider"
   end
