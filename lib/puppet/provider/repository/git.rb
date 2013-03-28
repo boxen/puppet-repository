@@ -45,7 +45,7 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def build_command_opts
-    default_commands_opts.tap do |h|
+    default_commands_opt.tap do |h|
       if uid = (self[:user] || self.class.default_user)
         h[:uid] = uid
       end
