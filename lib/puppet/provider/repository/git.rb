@@ -61,6 +61,7 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def friendly_config
+    return if @resource[:config].nil?
     @friendly_config ||= Array.new.tap do |a|
       @resource[:config].each do |setting, value|
         a << "-c #{setting}=#{value}"
