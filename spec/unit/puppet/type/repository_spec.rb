@@ -89,12 +89,17 @@ describe Puppet::Type.type(:repository) do
 
     it "should default to boxen_user if it exists" do
       Facter[:boxen_user].stubs(:value).returns(nil)
-
-      factory.call.should == nil
+      factory.call(default_opts)[:user].should == nil
 
       Facter[:boxen_user].stubs(:value).returns('testuser')
+      factory.call(default_opts)[:user].should == 'testuser'
+    end
 
-      factory.call.should == 'testuser'
+    it "should override boxen_user if both exist" do
+      Facter[:boxen_user].stubs(:value).returns('testuser')
+
+      opts = default_opts.merge(:user => "otheruser")
+      factory.call(opts)[:user].should == 'otheruser'
     end
   end
 
