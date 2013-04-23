@@ -24,7 +24,7 @@ Puppet::Type.type(:repository).provide :git do
       friendly_extra,
       friendly_source,
       friendly_path
-    ].flatten.compact
+    ].flatten.compact.join(' ')
 
     execute command, command_opts
   end
