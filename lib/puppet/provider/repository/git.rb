@@ -34,7 +34,10 @@ Puppet::Type.type(:repository).provide :git do
 
   def ensure_revision
     create unless cloned?
-    execute [command(:git), "reset", "--hard", target_revision], command_opts
+
+    Dir.chdir @resource[:path] do
+      execute [command(:git), "reset", "--hard", target_revision], command_opts
+    end
   end
 
   def destroy
@@ -63,8 +66,8 @@ Puppet::Type.type(:repository).provide :git do
 
   def default_command_opts
     {
-      :combine    => true,
-      :failonfail => true
+      :combine     => true,
+      :failonfail  => true
     }
   end
 
@@ -92,20 +95,19 @@ Puppet::Type.type(:repository).provide :git do
   private
 
   def current_revision
-    @current_revision ||= execute [
-      command(:git),
-      "rev-parse",
-      "HEAD"
-      ], command_opts
+    @current_revision ||= Dir.chdir @resource[:path] do
+      execute([
+        command(:git), "rev-parse", "HEAD"
+      ], command_opts).chomp
+    end
   end
 
   def target_revision
-    @target_revision ||= execute [
-      command(:git),
-      "rev-list",
-      "--max-count=1",
-      @resource[:ensure]
-      ], command_opts
+    @target_revision ||= Dir.chdir @resource[:path] do
+      execute([
+        command(:git), "rev-list", "--max-count=1", @resource[:ensure]
+      ], command_opts).chomp
+    end
   end
 
   def cloned?
@@ -114,7 +116,12 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def correct_revision?
-    execute [command(:git), "fetch", "-q", "origin"], command_opts
-    current_revision == target_revision
+    Dir.chdir @resource[:path] do
+      execute [
+        command(:git), "fetch", "-q", "origin"
+      ], command_opts
+
+      current_revision == target_revision
+    end
   end
 end
