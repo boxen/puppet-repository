@@ -15,14 +15,15 @@ Puppet::Type.type(:repository).provide :git do
     h = { :name => @resource[:name], :provider => :git }
 
     if cloned?
-      if [:present, :absent).member? @resource[:ensure]
-        Puppet.warning("Repository[#{@resource[:name]}] ensure => #{@resource[:ensure]}")
-        h.merge(:ensure => (cloned? ? :present : :absent))
+      if [:present, :absent].member? @resource[:ensure]
+        h.merge(:ensure => :present)
       else
         if correct_revision?
+          Puppet.warning("Repository[#{@resource[:name]}] ensure => #{@resource[:ensure]}")
           h.merge(:ensure => @resource[:ensure])
         else
-          h.merge(:ensure => current_revision)
+          # we need to ensure the correct revision, cheat #exists?
+          h.merge(:ensure => :absent)
         end
       end
     else

@@ -76,7 +76,7 @@ Puppet.newtype :repository do
   end
 
   def exists?
-    @provider.query[:ensure] == @parameters[:ensure]
+    @provider.query[:ensure] != @parameters[:ensure]
   end
 
   autorequire :file do
