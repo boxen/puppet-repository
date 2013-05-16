@@ -11,19 +11,6 @@ Puppet::Type.type(:repository).provide :git do
     'https'
   end
 
-  def cloned?
-    File.directory?(@resource[:path]) &&
-      File.directory?("#{@resource[:path]}/.git")
-  end
-
-  def correct_revision?
-    execute [command(:git), "fetch", "-q", "origin"], command_opts
-
-    current_revision = execute([command(:git), "rev-parse", "HEAD"], command_opts)
-
-    # TODO: Given any ref, tag, or branch name, ensure local HEAD matches remote HEAD
-  end
-
   def exists?
     if [:present, :absent].member? @resource[:ensure]
       cloned?
@@ -47,8 +34,7 @@ Puppet::Type.type(:repository).provide :git do
 
   def ensure_revision
     create unless cloned?
-
-    execute [command(:git), "reset", "--hard", @resource[:ensure]], command_opts
+    execute [command(:git), "reset", "--hard", target_revision], command_opts
   end
 
   def destroy
@@ -101,5 +87,34 @@ Puppet::Type.type(:repository).provide :git do
 
   def friendly_path
     @friendly_path ||= Shellwords.escape(@resource[:path])
+  end
+
+  private
+
+  def current_revision
+    @current_revision ||= execute [
+      command(:git),
+      "rev-parse",
+      "HEAD"
+      ], command_opts
+  end
+
+  def target_revision
+    @target_revision ||= execute [
+      command(:git),
+      "rev-list",
+      "--max-count=1",
+      @resource[:ensure]
+      ], command_opts
+  end
+
+  def cloned?
+    File.directory?(@resource[:path]) &&
+      File.directory?("#{@resource[:path]}/.git")
+  end
+
+  def correct_revision?
+    execute [command(:git), "fetch", "-q", "origin"], command_opts
+    current_revision == target_revision
   end
 end
