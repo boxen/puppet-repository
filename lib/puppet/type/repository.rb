@@ -11,7 +11,7 @@ Puppet.newtype :repository do
       provider.destroy
     end
 
-    newvalue /.+/ do
+    newvalue /./ do
       provider.ensure_revision
     end
 
@@ -76,7 +76,7 @@ Puppet.newtype :repository do
   end
 
   def exists?
-    provider.get(:ensure) != :absent
+    @provider.query[:ensure] == @parameters[:ensure]
   end
 
   autorequire :file do
