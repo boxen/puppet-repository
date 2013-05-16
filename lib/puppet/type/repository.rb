@@ -75,6 +75,10 @@ Puppet.newtype :repository do
     end
   end
 
+  def exists?
+    provider.get(:ensure) != :absent
+  end
+
   autorequire :file do
     Array.new.tap do |a|
       path = Pathname.new self[:path]

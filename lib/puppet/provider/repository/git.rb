@@ -11,11 +11,21 @@ Puppet::Type.type(:repository).provide :git do
     'https'
   end
 
-  def exists?
-    if [:present, :absent].member? @resource[:ensure]
-      cloned?
+  def query
+    h = { :name => @resource[:name], :provider => :git }
+
+    if cloned?
+      if [ :present, :absent ].member? @resource[:ensure]
+        h.merge(:ensure => (cloned? ? :present : :absent))
+      else
+        if correct_revision?
+          h.merge(:ensure => @resource[:ensure])
+        else
+          h.merge(:ensure => current_revision)
+        end
+      end
     else
-      cloned? && correct_revision?
+      h.merge(:ensure => :absent)
     end
   end
 
