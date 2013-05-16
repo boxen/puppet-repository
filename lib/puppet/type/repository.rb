@@ -11,6 +11,10 @@ Puppet.newtype :repository do
       provider.destroy
     end
 
+    newvalue /.+/ do
+      provider.ensure_revision
+    end
+
     defaultto :present
   end
 
