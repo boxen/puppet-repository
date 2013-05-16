@@ -19,11 +19,10 @@ Puppet::Type.type(:repository).provide :git do
         h.merge(:ensure => :present)
       else
         if correct_revision?
-          Puppet.warning("Repository[#{@resource[:name]}] ensure => #{@resource[:ensure]}")
           h.merge(:ensure => @resource[:ensure])
         else
           # we need to ensure the correct revision, cheat #exists?
-          h.merge(:ensure => :absent)
+          h.merge(:ensure => current_revision)
         end
       end
     else
