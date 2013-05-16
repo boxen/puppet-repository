@@ -84,6 +84,19 @@ Puppet.newtype :repository do
     desc "Extra actions or information for a provider"
   end
 
+  newparam :force do
+    desc "Whether or not to force reset if the working tree is dirty"
+
+    validate do |value|
+      unless value.is_a?(TrueClass) || value.is_a?(FalseClass)
+        raise Puppet::Error, \
+          "Force must be true or false"
+      end
+    end
+
+    defaultto false
+  end
+
   validate do
     if self[:source].nil?
       # ensure => absent does not need a source

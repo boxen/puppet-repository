@@ -1,9 +1,11 @@
 require 'fileutils'
+require 'puppet/util/errors'
 require 'puppet/util/execution'
 require 'shellwords'
 
 Puppet::Type.type(:repository).provide :git do
   include Puppet::Util::Execution
+  include Puppet::Util::Errors
 
   optional_commands :git => 'git'
 
@@ -47,7 +49,18 @@ Puppet::Type.type(:repository).provide :git do
     create unless cloned?
 
     Dir.chdir @resource[:path] do
-      execute [command(:git), "reset", "--hard", target_revision], command_opts
+      status = execute [command(:git), "status", "--porcelain"], command_opts
+
+      if status.empty?
+        execute [command(:git), "reset", "--hard", target_revision], command_opts
+      else
+        if @resource[:force]
+          Puppet.warning("Repository[#{@resource[:name]}] tree is dirty and force is true: doing hard reset!")
+          execute [command(:git), "reset", "--hard", target_revision], command_opts
+        else
+          fail("Repository[#{@resource[:name]}] tree is dirty and force is false: cannot sync resource!")
+        end
+      end
     end
   end
 
