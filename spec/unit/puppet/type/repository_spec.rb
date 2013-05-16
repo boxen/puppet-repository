@@ -30,12 +30,6 @@ describe Puppet::Type.type(:repository) do
       resource[:ensure] = :absent
       resource[:ensure].should == :absent
     end
-
-    it "should reject other values" do
-      expect {
-        resource[:ensure] = :awesome
-      }.to raise_error(Puppet::Error)
-    end
   end
 
   context "path" do

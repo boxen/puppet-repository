@@ -11,9 +11,23 @@ Puppet::Type.type(:repository).provide :git do
     'https'
   end
 
-  def exists?
-    File.directory?(@resource[:path]) &&
-      File.directory?("#{@resource[:path]}/.git")
+  def query
+    h = { :name => @resource[:name], :provider => :git }
+
+    if cloned?
+      if [:present, :absent].member? @resource[:ensure]
+        h.merge(:ensure => :present)
+      else
+        if correct_revision?
+          h.merge(:ensure => @resource[:ensure])
+        else
+          # we need to ensure the correct revision, cheat #exists?
+          h.merge(:ensure => current_revision)
+        end
+      end
+    else
+      h.merge(:ensure => :absent)
+    end
   end
 
   def create
@@ -27,6 +41,14 @@ Puppet::Type.type(:repository).provide :git do
     ].flatten.compact.join(' ')
 
     execute command, command_opts
+  end
+
+  def ensure_revision
+    create unless cloned?
+
+    Dir.chdir @resource[:path] do
+      execute [command(:git), "reset", "--hard", target_revision], command_opts
+    end
   end
 
   def destroy
@@ -55,8 +77,8 @@ Puppet::Type.type(:repository).provide :git do
 
   def default_command_opts
     {
-      :combine    => true,
-      :failonfail => true
+      :combine     => true,
+      :failonfail  => true
     }
   end
 
@@ -79,5 +101,38 @@ Puppet::Type.type(:repository).provide :git do
 
   def friendly_path
     @friendly_path ||= Shellwords.escape(@resource[:path])
+  end
+
+  private
+
+  def current_revision
+    @current_revision ||= Dir.chdir @resource[:path] do
+      execute([
+        command(:git), "rev-parse", "HEAD"
+      ], command_opts).chomp
+    end
+  end
+
+  def target_revision
+    @target_revision ||= Dir.chdir @resource[:path] do
+      execute([
+        command(:git), "rev-list", "--max-count=1", @resource[:ensure]
+      ], command_opts).chomp
+    end
+  end
+
+  def cloned?
+    File.directory?(@resource[:path]) &&
+      File.directory?("#{@resource[:path]}/.git")
+  end
+
+  def correct_revision?
+    Dir.chdir @resource[:path] do
+      execute [
+        command(:git), "fetch", "-q", "origin"
+      ], command_opts
+
+      current_revision == target_revision
+    end
   end
 end
