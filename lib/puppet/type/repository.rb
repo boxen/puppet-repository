@@ -11,7 +11,30 @@ Puppet.newtype :repository do
       provider.destroy
     end
 
+    newvalue /./ do
+      provider.ensure_revision
+    end
+
     defaultto :present
+
+
+    def retrieve
+      provider.query[:ensure]
+    end
+
+    def insync?(is)
+      @should.each { |should|
+        case should
+        when :present
+          return true unless is == :absent
+        when :absent
+          return true if is == :absent
+        when *Array(is)
+          return true
+        end
+      }
+      false
+    end
   end
 
   newparam :path, :namevar => true do
@@ -69,6 +92,10 @@ Puppet.newtype :repository do
           "You must specify a source for Repository[#{self[:name]}]"
       end
     end
+  end
+
+  def exists?
+    @provider.query[:ensure] != @parameters[:ensure]
   end
 
   autorequire :file do
