@@ -81,12 +81,17 @@ describe Puppet::Type.type(:repository) do
       resource[:user].should == 'git'
     end
 
-    it "should default to boxen_user if it exists" do
-      Facter[:boxen_user].stubs(:value).returns(nil)
-      factory.call(default_opts)[:user].should == nil
+    it "should try boxen_user then id then go root" do
+      Facter.stubs(:value).with(:boxen_user).returns(nil)
+      Facter.stubs(:value).with(:id).returns(nil)
 
-      Facter[:boxen_user].stubs(:value).returns('testuser')
-      factory.call(default_opts)[:user].should == 'testuser'
+      factory.call(default_opts)[:user].should == 'root'
+
+      Facter.stubs(:value).with(:id).returns('jimmy')
+      factory.call(default_opts)[:user].should == 'jimmy'
+
+      Facter.stubs(:value).with(:id).returns('timmy')
+      factory.call(default_opts)[:user].should == 'timmy'
     end
 
     it "should override boxen_user if both exist" do

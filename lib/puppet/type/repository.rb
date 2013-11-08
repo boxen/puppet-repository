@@ -66,7 +66,7 @@ Puppet.newtype :repository do
     desc "User to run this operation as."
 
     defaultto do
-      Facter[:boxen_user].value
+      Facter.value(:boxen_user) || Facter.value(:id) || 'root'
     end
   end
 

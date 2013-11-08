@@ -42,7 +42,9 @@ Puppet::Type.type(:repository).provide :git do
       friendly_path
     ].flatten.compact.join(' ')
 
-    execute command, command_opts
+    execute command, command_opts.merge(:uid => 'root')
+
+    FileUtils.chown_R @resource[:user], nil, @resource[:path]
   end
 
   def ensure_revision
@@ -77,21 +79,14 @@ Puppet::Type.type(:repository).provide :git do
   end
 
   def command_opts
-    @command_opts ||= build_command_opts
-  end
-
-  def build_command_opts
-    default_command_opts.tap do |h|
-      if uid = (@resource[:user] || self.class.default_user)
-        h[:uid] = uid
-      end
-    end
+    @command_opts ||= default_command_opts
   end
 
   def default_command_opts
     {
       :combine     => true,
-      :failonfail  => true
+      :failonfail  => true,
+      :uid         => @resource[:user],
     }
   end
 
