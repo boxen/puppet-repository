@@ -82,9 +82,6 @@ describe Puppet::Type.type(:repository) do
     end
 
     it "should default to boxen_user if it exists" do
-      Facter[:boxen_user].stubs(:value).returns(nil)
-      factory.call(default_opts)[:user].should == nil
-
       Facter[:boxen_user].stubs(:value).returns('testuser')
       factory.call(default_opts)[:user].should == 'testuser'
     end
@@ -94,6 +91,14 @@ describe Puppet::Type.type(:repository) do
 
       opts = default_opts.merge(:user => "otheruser")
       factory.call(opts)[:user].should == 'otheruser'
+    end
+
+    it "requires a user if boxen_user doesn't exist" do
+      Facter[:boxen_user].stubs(:value).returns(nil)
+
+      expect {
+        factory.call(default_opts)
+      }.to raise_error(Puppet::Error, /You must specify a user/)
     end
   end
 
