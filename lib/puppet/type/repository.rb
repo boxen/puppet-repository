@@ -105,6 +105,13 @@ Puppet.newtype :repository do
           "You must specify a source for Repository[#{self[:name]}]"
       end
     end
+
+    if self[:user].nil?
+      unless self[:ensure] == :absent || self[:ensure] == 'absent'
+        raise Puppet::Error, \
+          "You must specify a user for Repository[#{self[:name]}]"
+      end
+    end
   end
 
   def exists?
