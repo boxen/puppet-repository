@@ -60,13 +60,17 @@ Puppet.newtype :repository do
         provider.class.default_protocol
       end
     end
+
+    validate do |v|
+      provider.class.validate v
+    end
   end
 
   newparam :user do
     desc "User to run this operation as."
 
     defaultto do
-      Facter[:boxen_user].value
+      Facter.value(:boxen_user) || Facter.value(:id) || "root"
     end
   end
 

@@ -13,6 +13,13 @@ Puppet::Type.type(:repository).provide :git do
     'https'
   end
 
+  def self.validate(v)
+    unless %w(git ssh https).member? v.to_s
+      raise Puppet::Error, \
+        "Protocol can only be git, https, or ssh for now!"
+    end
+  end
+
   def query
     h = { :name => @resource[:name], :provider => :git }
 
@@ -70,7 +77,14 @@ Puppet::Type.type(:repository).provide :git do
 
   def expand_source(source)
     if source =~ /\A[^@\/\s]+\/[^\/\s]+\z/
-      "#{@resource[:protocol]}://github.com/#{source}"
+      case @resource[:protocol]
+      when "git", "https"
+        "#{@resource[:protocol]}://github.com/#{source}"
+      when "ssh"
+        "git@github.com:#{source}.git"
+      else
+        raise "failtown"
+      end
     else
       source
     end
