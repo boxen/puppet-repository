@@ -23,9 +23,9 @@ repository {
 ### Ensure your repo is at a specific revision
 
 You can ensure that your repository is always at a specific revision by
-including a `ensure` argument. `ensure` takes a git version
+including a `ensure` argument. `ensure` takes a git version.
 
-#### Ensure your local copy is in sync with the remote origin
+#### In sync with remote HEAD
 ```puppet
 repository {
   '/path/to/code':
