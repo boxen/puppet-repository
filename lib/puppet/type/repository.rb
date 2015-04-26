@@ -12,6 +12,7 @@ Puppet.newtype :repository do
     end
 
     newvalue /./ do
+      provider.ensure_remote
       provider.ensure_revision
     end
 

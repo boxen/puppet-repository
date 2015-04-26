@@ -52,6 +52,20 @@ Puppet::Type.type(:repository).provide :git do
     execute command, command_opts
   end
 
+  def ensure_remote
+    create unless cloned?
+
+    Dir.chdir @resource[:path] do
+      source = execute [command(:git), "config", "--get", "remote.origin.url"], command_opts
+
+      if source != friendly_source
+        execute [command(:git), "config", "--set", "remote.origin.url", friendly_source], command_opts
+
+        Puppet.info("Repository[#{@resource[:name]}] changing source from #{source} to #{friendly_source}")
+      end
+    end
+  end
+
   def ensure_revision
     create unless cloned?
 
