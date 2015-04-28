@@ -24,14 +24,21 @@ Puppet::Type.type(:repository).provide :git do
     h = { :name => @resource[:name], :provider => :git }
 
     if cloned?
-      if [:present, :absent].member? @resource[:ensure]
-        h.merge(:ensure => :present)
+      if @resource[:ensure] == :absent
+          h.merge(:ensure => :present)
+      elsif @resource[:ensure] == :present
+        if correct_remote?
+          h.merge(:ensure => :present)
+        else
+          # we need to ensure the correct remote, cheat #exists?
+          h.merge(:ensure => :update)
+        end
       else
-        if correct_revision?
+        if correct_remote? && correct_revision?
           h.merge(:ensure => @resource[:ensure])
         else
-          # we need to ensure the correct revision, cheat #exists?
-          h.merge(:ensure => current_revision)
+          # we need to ensure the correct revision and remote, cheat #exists?
+          h.merge(:ensure => :update)
         end
       end
     else
@@ -55,13 +62,11 @@ Puppet::Type.type(:repository).provide :git do
   def ensure_remote
     create unless cloned?
 
-    Dir.chdir @resource[:path] do
-      source = execute [command(:git), "config", "--get", "remote.origin.url"], command_opts
+    unless correct_remote?
+      Dir.chdir @resource[:path] do
+        execute [command(:git), "config", "remote.origin.url", friendly_source], command_opts
 
-      if source != friendly_source
-        execute [command(:git), "config", "--set", "remote.origin.url", friendly_source], command_opts
-
-        Puppet.info("Repository[#{@resource[:name]}] changing source from #{source} to #{friendly_source}")
+        Puppet.notice("Repository[#{@resource[:name]}] changing source from #{current_remote} to #{friendly_source}")
       end
     end
   end
@@ -162,6 +167,14 @@ Puppet::Type.type(:repository).provide :git do
     end
   end
 
+  def current_remote
+    @current_remote ||= Dir.chdir @resource[:path] do
+      execute([
+        command(:git), "config", "--get", "remote.origin.url"
+      ], command_opts).chomp
+    end
+  end
+
   def cloned?
     File.directory?(@resource[:path]) &&
       File.directory?("#{@resource[:path]}/.git")
@@ -175,5 +188,9 @@ Puppet::Type.type(:repository).provide :git do
 
       current_revision == target_revision
     end
+  end
+
+  def correct_remote?
+    current_remote == friendly_source
   end
 end
