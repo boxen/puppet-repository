@@ -68,6 +68,8 @@ Puppet::Type.type(:repository).provide :git do
 
         Puppet.notice("Repository[#{@resource[:name]}] changing source from #{current_remote} to #{friendly_source}")
       end
+
+      fetch_from_remote!
     end
   end
 
@@ -175,19 +177,22 @@ Puppet::Type.type(:repository).provide :git do
     end
   end
 
+  def fetch_from_remote!
+    Dir.chdir @resource[:path] do
+      execute [
+        command(:git), "fetch", "-q", "origin"
+      ], command_opts
+    end
+  end
+
   def cloned?
     File.directory?(@resource[:path]) &&
       File.directory?("#{@resource[:path]}/.git")
   end
 
   def correct_revision?
-    Dir.chdir @resource[:path] do
-      execute [
-        command(:git), "fetch", "-q", "origin"
-      ], command_opts
-
-      current_revision == target_revision
-    end
+    fetch_from_remote!
+    current_revision == target_revision
   end
 
   def correct_remote?
