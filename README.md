@@ -29,7 +29,7 @@ including a `ensure` argument. `ensure` takes a git version.
 ```puppet
 repository {
   '/path/to/code':
-    ensure   => 'origin/HEAD'
+    ensure   => 'origin/HEAD',
     source   => 'user/repo',
     provider => 'git';
   'my emacs config':
